@@ -154,6 +154,42 @@ test('should allow editing of editable cells and update the data correctly', asy
 });
 
 
+test('should allow columns to be dragged and reorganized', async ({ mount, page }) => {
+  // 1. Mount the component
+  const component = await mount(<App />);
+  await page.waitForSelector('.ag-root');
 
+  // 2. Locate the column headers for "Make" and "Model"
+  const makeHeader = component.locator('.ag-header-cell[col-id="make"]');
+  const modelHeader = component.locator('.ag-header-cell[col-id="model"]');
 
+  // Ensure both headers are visible
+  await expect(makeHeader).toBeVisible();
+  await expect(modelHeader).toBeVisible();
 
+  // 3. Get the initial aria-colindex values
+  const initialMakeColIndex = await makeHeader.getAttribute('aria-colindex');
+  const initialModelColIndex = await modelHeader.getAttribute('aria-colindex');
+
+  // 4. Perform drag-and-drop action to move "Make" to the position before "Model"
+  const makeHeaderBox = await makeHeader.boundingBox();
+  const modelHeaderBox = await modelHeader.boundingBox();
+
+  if (!makeHeaderBox || !modelHeaderBox) {
+    throw new Error('Unable to locate header bounding boxes');
+  }
+
+  const dragOffset = modelHeaderBox.x - makeHeaderBox.x; // Dragging to align with "Model"
+  await page.mouse.move(makeHeaderBox.x + makeHeaderBox.width / 2, makeHeaderBox.y + makeHeaderBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(makeHeaderBox.x + dragOffset, makeHeaderBox.y + makeHeaderBox.height / 2, { steps: 10 });
+  await page.mouse.up();
+
+  // 5. Verify the new aria-colindex values
+  const updatedMakeColIndex = await makeHeader.getAttribute('aria-colindex');
+  const updatedModelColIndex = await modelHeader.getAttribute('aria-colindex');
+  console.log(`Updated order: Make: ${updatedMakeColIndex}, Model: ${updatedModelColIndex}`);
+
+  // Assert that the "Make" column is now positioned before "Model"
+  expect(Number(updatedMakeColIndex)).toBeLessThan(Number(updatedModelColIndex));
+});
