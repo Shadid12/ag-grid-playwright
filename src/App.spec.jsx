@@ -193,3 +193,28 @@ test('should allow columns to be dragged and reorganized', async ({ mount, page 
   // Assert that the "Make" column is now positioned before "Model"
   expect(Number(updatedMakeColIndex)).toBeLessThan(Number(updatedModelColIndex));
 });
+
+test('should filter data by "Make" using the column filter menu', async ({ mount, page }) => {
+  // 1. Mount the component
+  const component = await mount(<App />);
+
+  // 2. Wait for AG Grid to be fully rendered
+  await page.waitForSelector('.ag-root');
+
+  // 3. Locate and click the filter menu icon for the "Make" column
+  const makeColumnFilterIcon = component.locator('.ag-header-cell[col-id="make"] .ag-header-icon');
+  await expect(makeColumnFilterIcon).toBeVisible();
+  await makeColumnFilterIcon.click();
+
+  // 4. Use the placeholder locator to fill in "Tesla"
+  const filterInput = component.locator('.ag-filter-body input[placeholder="Filter..."]');
+  await filterInput.fill('Tesla');
+
+  // 5. Verify only one row is visible
+  const rows = component.locator('.ag-center-cols-viewport .ag-row');
+  await expect(rows).toHaveCount(1);
+
+  // 6. Check the cell text
+  const makeCell = rows.first().locator('.ag-cell[col-id="make"]');
+  await expect(makeCell).toHaveText('Tesla');
+});
