@@ -167,11 +167,7 @@ test('should allow columns to be dragged and reorganized', async ({ mount, page 
   await expect(makeHeader).toBeVisible();
   await expect(modelHeader).toBeVisible();
 
-  // 3. Get the initial aria-colindex values
-  const initialMakeColIndex = await makeHeader.getAttribute('aria-colindex');
-  const initialModelColIndex = await modelHeader.getAttribute('aria-colindex');
-
-  // 4. Perform drag-and-drop action to move "Make" to the position before "Model"
+  // 3. Perform drag-and-drop action to move "Make" to the position before "Model"
   const makeHeaderBox = await makeHeader.boundingBox();
   const modelHeaderBox = await modelHeader.boundingBox();
 
@@ -185,7 +181,7 @@ test('should allow columns to be dragged and reorganized', async ({ mount, page 
   await page.mouse.move(makeHeaderBox.x + dragOffset, makeHeaderBox.y + makeHeaderBox.height / 2, { steps: 10 });
   await page.mouse.up();
 
-  // 5. Verify the new aria-colindex values
+  // 4. Verify the new aria-colindex values
   const updatedMakeColIndex = await makeHeader.getAttribute('aria-colindex');
   const updatedModelColIndex = await modelHeader.getAttribute('aria-colindex');
   console.log(`Updated order: Make: ${updatedMakeColIndex}, Model: ${updatedModelColIndex}`);
@@ -217,4 +213,31 @@ test('should filter data by "Make" using the column filter menu', async ({ mount
   // 6. Check the cell text
   const makeCell = rows.first().locator('.ag-cell[col-id="make"]');
   await expect(makeCell).toHaveText('Tesla');
+});
+
+test('should allow keyboard navigation and focus within the grid', async ({ mount, page }) => {
+  // 1. Mount the component
+  const component = await mount(<App />);
+  await page.waitForSelector('.ag-root');
+
+  // 2. Press Tab to move focus onto the first focusable element in the grid (the "Make" header).
+  await page.keyboard.press('Tab');
+  const makeHeader = component.locator('.ag-header-cell[col-id="make"]');
+  await expect(makeHeader).toBeFocused();
+
+  // 3. Open the filter pop-up by clicking the filter icon, then close it
+  const makeHeaderFilterIcon = makeHeader.locator('.ag-header-icon');
+  await makeHeaderFilterIcon.click();
+
+  const filterPopup = component.locator('.ag-filter-wrapper');
+  await expect(filterPopup).toBeVisible();
+  
+  // Press Escape to close the filter pop-up
+  await page.keyboard.press('Escape');
+  await expect(filterPopup).toBeHidden();
+
+  // 4. Press ArrowDown to move focus from the header to the first row, "make" cell.
+  await page.keyboard.press('ArrowDown');
+  const firstRowFirstCell = component.locator('.ag-row[row-index="0"] [col-id="make"]');
+  await expect(firstRowFirstCell).toBeFocused();
 });
